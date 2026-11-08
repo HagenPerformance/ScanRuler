@@ -1652,6 +1652,7 @@ export default function App() {
               onReady={(s) => {
                 sceneRef.current = s
                 attachSurfaceScene(() => sceneRef.current)
+                if (onFlat) s.setGraphicsSuspended(true)
                 s.setNavScheme(schemeById(useStore.getState().navScheme))
                 s.setProjection(useStore.getState().projection)
                 s.setViewTheme(sceneTheme(useStore.getState().viewTheme, usePrefs.getState().dark))
@@ -1688,6 +1689,10 @@ export default function App() {
             <div className="viewslot">
               <FlatViewer
                 onReady={flatSync.onReady}
+                onBeforeCreate={() => sceneRef.current?.setGraphicsSuspended(true)}
+                onDisposed={() => {
+                  if (useShell.getState().workspace !== 'flat') sceneRef.current?.setGraphicsSuspended(false)
+                }}
                 onPick={(p, meta) => useFlat.getState().stageClick(p, meta, activeEdgeIndex())}
                 onPickDrag={(i, p, meta) =>
                   useFlat.getState().stageDrag(i, p, meta, activeEdgeIndex())

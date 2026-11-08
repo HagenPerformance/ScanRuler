@@ -2172,6 +2172,12 @@ export class SceneManager {
     if (!paused) this.viewport.resize()
   }
 
+  /** Release the hidden 3D view's WebGL context while the 2D workspace owns
+   *  the screen; restore it with the scan and camera still in place. */
+  setGraphicsSuspended(suspended: boolean): void {
+    this.viewport.setGraphicsSuspended(suspended)
+  }
+
   /** The scan's geometry, BVH and all. Handed to the split-screen picker so it
    *  can draw and raycast the same 1.4-million-triangle mesh without a second
    *  copy or a second tree — three.js keeps per-renderer GPU state, so one

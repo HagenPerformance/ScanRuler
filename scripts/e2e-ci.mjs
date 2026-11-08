@@ -73,7 +73,7 @@ try {
   })
   try {
     await dev.listen()
-    for (const check of ['e2e-import', 'e2e-sample', 'e2e-small-feature', 'e2e-hagen-controls', join(root, 'plugins/reverse/scripts/e2e-hagen-reverse.mjs'), 'e2e-recovery', 'e2e-history', 'e2e-agent', 'e2e-agent-warning', 'e2e-units', ...pluginChecks()]) await run(check, dev.resolvedUrls.local[0])
+    for (const check of ['e2e-import', 'e2e-sample', 'e2e-small-feature', 'e2e-hagen-controls', 'e2e-webgl-contexts', join(root, 'plugins/reverse/scripts/e2e-hagen-reverse.mjs'), 'e2e-recovery', 'e2e-history', 'e2e-agent', 'e2e-agent-warning', 'e2e-units', ...pluginChecks()]) await run(check, dev.resolvedUrls.local[0])
   } finally { await dev.close() }
 
   const production = await preview({ root, preview: { host: '127.0.0.1', port: 5194, strictPort: false, open: false } })

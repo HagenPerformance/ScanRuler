@@ -205,6 +205,9 @@ export class OrthoViewport {
   /** Skips rendering entirely while the viewport is hidden (behind the
    *  split-screen picker); everything loaded stays loaded. */
   paused = false
+  /** A hidden viewport can give its context to another workspace without
+   *  dropping the scene, scan geometry or camera pose held in JavaScript. */
+  private graphicsSuspended = false
   /** Half-extents of the model on the screen plane at the framing camera
    *  orientation; the frustum is rebuilt from these on every resize so the
    *  user's zoom survives. */
@@ -243,10 +246,26 @@ export class OrthoViewport {
     this.needsRender = true
   }
 
+  private onContextRestored = (): void => {
+    this.resize()
+    this.invalidate()
+  }
+
+  setGraphicsSuspended(suspended: boolean): void {
+    if (this.graphicsSuspended === suspended) return
+    this.graphicsSuspended = suspended
+    if (suspended) this.renderer.forceContextLoss()
+    else {
+      this.renderer.forceContextRestore()
+      this.invalidate()
+    }
+  }
+
   constructor(private container: HTMLDivElement, private opts: OrthoViewportOptions) {
     // A stencil buffer, for the cap that closes a part cut open at a plane
     // — three.js leaves it out unless asked.
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', alpha: Boolean(opts.transparent), stencil: true })
+    this.renderer.domElement.addEventListener('webglcontextrestored', this.onContextRestored)
     if (opts.transparent) this.renderer.setClearColor(0x000000, 0)
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.container.appendChild(this.renderer.domElement)
@@ -373,7 +392,7 @@ export class OrthoViewport {
   private frame(): void {
     // Ahead of the pause, so that a paused viewport lets go of the puck.
     if (spaceMouseAttached()) this.stepSpaceMouse()
-    if (this.paused) return
+    if (this.paused || this.graphicsSuspended) return
     // These run every tick, rendered or not: a turn under way moves the
     // camera a step, the clip planes track the camera (and let the
     // navigator drop its cached canvas rect), update() is what notices
@@ -402,7 +421,7 @@ export class OrthoViewport {
    *  view. The puck takes the camera back from a turn under way, as a hand on
    *  the canvas does. */
   private stepSpaceMouse(): void {
-    const m = readSpaceMouse(this, !this.paused && this.container.clientWidth > 0)
+    const m = readSpaceMouse(this, !this.paused && !this.graphicsSuspended && this.container.clientWidth > 0)
     if (m) this.flight = null
     this.nav.stepSpaceMouse(m)
   }
@@ -908,6 +927,12 @@ export class OrthoViewport {
     // nothing else takes those down with the container.
     this.nav.dispose()
     this.controls.dispose()
+    this.renderer.domElement.removeEventListener('webglcontextrestored', this.onContextRestored)
+    // dispose() frees renderer resources but does not explicitly give the
+    // browser its WebGL context back. The 2D viewport is recreated on every
+    // workspace visit (and twice on mount in development StrictMode), so
+    // leaving those contexts alive can prevent the next view from starting.
+    this.renderer.forceContextLoss()
     this.renderer.dispose()
     // Only what this viewport put there. Emptying the container instead would
     // also take out whatever React had rendered into it — the fit-to-view

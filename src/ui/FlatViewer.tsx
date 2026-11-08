@@ -50,6 +50,8 @@ export function useFlatSceneSettings(sceneRef: RefObject<FlatScene | null>): voi
  *  redecodes in well under a second. */
 export function FlatViewer({
   onReady,
+  onBeforeCreate,
+  onDisposed,
   onPick,
   onPickDrag,
   onPinClick,
@@ -64,6 +66,10 @@ export function FlatViewer({
   /** The scene when it comes up, null when the viewport unmounts — so the
    *  owner never holds a disposed scene. */
   onReady: (scene: FlatScene | null) => void
+  /** Let the hidden 3D viewport release its WebGL context first. */
+  onBeforeCreate?: () => void
+  /** Restore the 3D context once this viewport has released its own. */
+  onDisposed?: () => void
   onPick: (p: Vec2, meta: { alt: boolean; unitsPerScreenPx: number }) => void
   /** A draft pin dragged to a new spot, by index. */
   onPickDrag: (index: number, p: Vec2, meta: { alt: boolean; unitsPerScreenPx: number }) => void
@@ -122,6 +128,7 @@ export function FlatViewer({
   useEffect(() => {
     let scene: FlatScene
     try {
+      onBeforeCreate?.()
       scene = new FlatScene(
         containerRef.current!,
         sceneTheme(useStore.getState().viewTheme, usePrefs.getState().dark),
@@ -131,7 +138,7 @@ export function FlatViewer({
     } catch (e) {
       console.error(e)
       setWebglError(e instanceof Error ? e.message : String(e))
-      return
+      return () => onDisposed?.()
     }
     scene.setNavScheme(schemeById(useStore.getState().navScheme))
     scene.onPick = (p, meta) => pickRef.current(p, meta)
@@ -207,6 +214,7 @@ export function FlatViewer({
       sceneRef.current = null
       readyRef.current(null)
       scene.dispose()
+      onDisposed?.()
     }
   }, [])
 
