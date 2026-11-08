@@ -728,6 +728,9 @@ export default function App() {
       plugin.pick(hit)
       return
     }
+    // Ctrl is the subtract gesture in this profile. A fresh fit seed or
+    // point pick has nothing to subtract; Undo point remains available.
+    if (workspace === 'elements' && hit.ctrlKey && schemeById(store.navScheme).shiftPick) return
     if (workspace !== 'elements') {
       const reading = readingAt(hit)
       if (!reading) return
@@ -1413,13 +1416,17 @@ export default function App() {
   // everything else the tool has to say goes to the status strip.
   const fileName = useStore((s) => s.fileName)
   const vertexCountLoaded = useStore((s) => s.vertexCount > 0)
+  const shiftPickControls = useStore((s) => schemeById(s.navScheme).shiftPick === true)
+  const controlHint = (hint: string | null) => shiftPickControls && hint
+    ? hint.replaceAll('Enter or middle-click', 'Space or Enter').replaceAll('Click ', 'Shift-click ').replaceAll('click again', 'Shift-click again')
+    : hint
   const draftMode = draft ? creationMethod(draft.kind, draft.method).mode : null
-  const openSlotHint = openSlotHintOf({ draft, draftMode, sectionDraft, alignDraft, dimDraft, elements, sections: storeSections, scaleDraft })
+  const openSlotHint = controlHint(openSlotHintOf({ draft, draftMode, sectionDraft, alignDraft, dimDraft, elements, sections: storeSections, scaleDraft }))
   const markCount = useMark((s) => s.count)
   const editingDraft = draft?.editId !== undefined
-  const paintHint = paintHintOf({ draft, painting, markGesture, markStraight, markCount, editingDraft })
-  const stageHint = stageHintOf({ draft, draftMode, openSlotHint, painting, paintHint, editingDraft })
-  const markHint = markHintOf({ marking, markGesture, markStraight, markCount, source: useDeviation.getState().source })
+  const paintHint = controlHint(paintHintOf({ draft, painting, markGesture, markStraight, markCount, editingDraft, shiftPick: shiftPickControls }))
+  const stageHint = controlHint(stageHintOf({ draft, draftMode, openSlotHint, painting, paintHint, editingDraft }))
+  const markHint = markHintOf({ marking, markGesture, markStraight, markCount, source: useDeviation.getState().source, shiftPick: shiftPickControls })
 
   // The guided hints: which control is ringing is the control's own business
   // (usePulse), but the sentence that goes with it belongs on the stage, and

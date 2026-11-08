@@ -224,6 +224,8 @@ export interface MarkingContext {
   /** Whether a press is a camera gesture under the scheme in force: a modifier
    *  chord the scheme uses stays the camera's. */
   navigates(e: PointerEvent): boolean
+  /** Whether the active 3D profile reserves Shift/Ctrl+left for marking. */
+  shiftPick?(): boolean
   /** Ask for a hover pass on the next frame (the footprint follows settings
    *  even if the cursor never moves again). */
   requestHover(): void
@@ -343,10 +345,12 @@ export class SurfaceMarking {
   handlePointerDown(e: PointerEvent): boolean {
     const gesture = this.pointerGesture()
     if (!gesture) return false
-    if ((e.button !== 0 && e.button !== 2) || e.shiftKey) return false
-    const mod = modHeld(e)
+    const shifted = this.ctx.shiftPick?.() && e.pointerType !== 'touch'
+    if (e.button !== 0 && e.button !== 2) return false
+    if (shifted ? e.button === 0 && !e.shiftKey && !modHeld(e) : e.shiftKey) return false
+    const mod = !shifted && modHeld(e)
     if (mod && (gesture !== 'brush' || this.ctx.navigates(e))) return false
-    const erase = this.eraseFor(e.button === 2, e.altKey)
+    const erase = shifted && e.button === 0 ? modHeld(e) : this.eraseFor(e.button === 2, e.altKey)
     this.painting = true
     if (gesture === 'brush') {
       if ((this.paint?.straight ?? false) !== mod) {
@@ -791,7 +795,9 @@ export class SurfaceMarking {
       this.extendMarquee(e.clientX, e.clientY)
       return
     }
-    const erasing = this.eraseFor((e.buttons & 2) !== 0, e.altKey)
+    const erasing = this.ctx.shiftPick?.() && (e.buttons & 1) !== 0 && e.pointerType !== 'touch'
+      ? modHeld(e)
+      : this.eraseFor((e.buttons & 2) !== 0, e.altKey)
     if (erasing !== this.paintErasing) {
       this.paintErasing = erasing
       this.updateRingColor()

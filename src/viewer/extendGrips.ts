@@ -618,9 +618,9 @@ export class ExtendGrips {
   /** A grip under the cursor takes the plain left-drag — the navigator has
    *  already stepped aside for it, the same way it does for the brush.
    *  Returns whether the event was taken. */
-  handlePointerDown(e: PointerEvent): boolean {
+  handlePointerDown(e: PointerEvent, shiftPick = false): boolean {
     if (this.hoveredHandle === null) return false
-    if (e.button !== 0 || e.shiftKey || e.ctrlKey || e.metaKey) return false
+    if (e.button !== 0 || e.shiftKey !== shiftPick || e.ctrlKey || e.metaKey) return false
     const grip = this.handles.find((h) => h.side === this.hoveredHandle)
     if (!grip) return false
     this.beginHandleDrag(grip, e.clientX, e.clientY)

@@ -10,6 +10,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { InfoDot } from '../../../src/ui/InfoDot'
 import { Icon } from '../../../src/ui/icons'
 import { useStore } from '../../../src/state/store'
+import { schemeById } from '../../../src/viewer/navSchemes'
 import type { Note, NoteTarget } from '../core/notes'
 import { useNotes } from '../state/noteStore'
 import { useReverse, type BodyInfo } from '../state/reStore'
@@ -101,6 +102,7 @@ function useMiddleClick(ready: boolean, done: () => void) {
   useEffect(() => {
     let down: { x: number; y: number } | null = null
     const onDown = (e: PointerEvent) => {
+      if (schemeById(useStore.getState().navScheme).shiftPick) return
       if (e.button === 1) down = { x: e.clientX, y: e.clientY }
     }
     const onUp = (e: PointerEvent) => {
@@ -153,7 +155,7 @@ function AnswerBox({ note, at }: { note: Note; at: { x: number; y: number } }) {
         <button data-test="note-delete" title="Take the question off the part" onClick={() => useNotes.getState().removeNote(note.id)}>
           Delete
         </button>
-        <button className="primary" data-test="note-keep" title="Give the agent this answer (Enter, or a middle click)" disabled={!draft.trim()} onClick={answer}>
+        <button className="primary" data-test="note-keep" title={schemeById(useStore.getState().navScheme).shiftPick ? 'Give the agent this answer (Enter)' : 'Give the agent this answer (Enter, or a middle click)'} disabled={!draft.trim()} onClick={answer}>
           Answer
         </button>
       </div>
@@ -189,7 +191,7 @@ function NoteBox({ note, at }: { note: Note; at: { x: number; y: number } }) {
         <button data-test="note-delete" title="Take the note off the part" onClick={() => useNotes.getState().removeNote(note.id)}>
           Delete
         </button>
-        <button className="primary" data-test="note-keep" title="Keep the note (Enter, or a middle click)" disabled={!draft.trim()} onClick={keep}>
+        <button className="primary" data-test="note-keep" title={schemeById(useStore.getState().navScheme).shiftPick ? 'Keep the note (Enter)' : 'Keep the note (Enter, or a middle click)'} disabled={!draft.trim()} onClick={keep}>
           {note.text ? 'Save' : 'Pin note'}
         </button>
       </div>

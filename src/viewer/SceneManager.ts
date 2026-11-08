@@ -464,7 +464,7 @@ export class SceneManager {
       // what it took and ends there, rather than being dragged across the part
       // by a hand that has started navigating.
       onMultiTouch: () => this.marking.endGesture(),
-      onClick: (x, y, e) => this.handleClick(x, y, modHeld(e)),
+      onClick: (x, y, e) => this.handleClick(x, y, modHeld(e), Boolean(e?.shiftKey)),
       // The stroke and hover queues are what decide whether this frame has
       // anything new to show at all.
       onTick: () => {
@@ -537,6 +537,7 @@ export class SceneManager {
       invalidate: this.invalidate,
       claimDrag: (on) => this.claimDrag('paint', on),
       navigates: (e) => this.viewport.nav.navigates(e),
+      shiftPick: () => this.viewport.nav.shiftPick(),
       requestHover: () => {
         this.hoverDirty = true
       },
@@ -680,7 +681,10 @@ export class SceneManager {
       }
     }
     if (this.marking.pointerGesture() !== null) return this.marking.handlePointerDown(e)
-    if (this.grips.handlePointerDown(e)) return true
+    if (this.grips.handlePointerDown(e, this.viewport.nav.shiftPick() && e.pointerType !== 'touch')) return true
+    // The custom profile keeps an unmodified left press with the camera,
+    // even over a plugin's draggable object.
+    if (this.viewport.nav.shiftPick() && e.pointerType !== 'touch' && e.button === 0 && !e.shiftKey && !e.ctrlKey && !e.metaKey) return false
     for (const layer of this.sortedLayers()) if (layer.pointerDown?.(e)) return true
     return false
   }
@@ -712,8 +716,8 @@ export class SceneManager {
    *  a coordinate plane on offer. An element comes before a plane: the planes
    *  are drawn through the part and would otherwise take every click on
    *  whatever lies behind them. */
-  private clickSteps(): ((x: number, y: number, additive: boolean) => boolean)[] {
-    const steps: { order: number; click: (x: number, y: number, additive: boolean) => boolean }[] = [
+  private clickSteps(): ((x: number, y: number, additive: boolean, remove: boolean) => boolean)[] {
+    const steps: { order: number; click: (x: number, y: number, additive: boolean, remove: boolean) => boolean }[] = [
       {
         order: LAYER_ORDER.elements,
         click: (x, y) => {
@@ -740,13 +744,16 @@ export class SceneManager {
 
   /** A click that survived the drag threshold: whatever of the layers' and
    *  the viewport's own takes it, else a surface pick. */
-  private handleClick(x: number, y: number, ctrlKey = false): void {
+  private handleClick(x: number, y: number, ctrlKey = false, shiftKey = false): void {
+    const custom = this.viewport.nav.shiftPick()
+    const additive = ctrlKey || (custom && shiftKey)
+    const remove = custom && ctrlKey
     // What the arrow keys stepped to under the cursor takes the click first.
     const stepped = this.cyclingLayer({ x, y })
-    if (stepped?.click?.(x, y, ctrlKey)) return
-    for (const click of this.clickSteps()) if (click(x, y, ctrlKey)) return
+    if (stepped?.click?.(x, y, additive, remove)) return
+    for (const click of this.clickSteps()) if (click(x, y, additive, remove)) return
     // Nothing selectable was there: the scan, or empty space.
-    if (!ctrlKey) for (const layer of this.layers) layer.clickedAway?.(x, y)
+    if (!additive) for (const layer of this.layers) layer.clickedAway?.(x, y)
     const hit = this.pick(x, y)
     if (hit) this.onPick?.({ ...hit, ctrlKey })
   }
@@ -3122,6 +3129,7 @@ export class SceneManager {
         this.viewport.renderer.domElement.style.cursor = cursor
       },
       claimDrag: (on) => this.claimDrag('layer', on),
+      shiftPick: () => this.viewport.nav.shiftPick(),
       theme: () => this.theme,
       modelRadius: () => this.modelRadius,
       modelCenter: () => this.modelCenter(),

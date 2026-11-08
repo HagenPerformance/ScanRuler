@@ -89,13 +89,13 @@ export class ReScene {
   onSketchLinePick: ((hit: SketchLineHit, clientX: number, clientY: number) => void) | null = null
   /** A click on a face or an edge of a body while those are armed — see
    *  setBodyPickMode. */
-  onBodyFacePick: ((hit: BodyFaceHit, clientX: number, clientY: number, additive: boolean) => void) | null = null
-  onBodyEdgePick: ((hit: BodyEdgeHit, clientX: number, clientY: number, additive: boolean) => void) | null = null
+  onBodyFacePick: ((hit: BodyFaceHit, clientX: number, clientY: number, additive: boolean, remove?: boolean) => void) | null = null
+  onBodyEdgePick: ((hit: BodyEdgeHit, clientX: number, clientY: number, additive: boolean, remove?: boolean) => void) | null = null
   /** A click on the part while a place on it is asked for — see
    *  setPartPointPick — in the part's coordinates. */
   onPartPointPick: ((point: Vec3, clientX: number, clientY: number) => void) | null = null
   /** A click on a corner of a body, with nothing armed but the selection. */
-  onBodyVertexPick: ((hit: BodyVertexHit, clientX: number, clientY: number, additive: boolean) => void) | null = null
+  onBodyVertexPick: ((hit: BodyVertexHit, clientX: number, clientY: number, additive: boolean, remove?: boolean) => void) | null = null
   /** A window dragged over the bodies with Shift held — see beginBodyWindow
    *  — and what of the armed faces and edges it took. */
   onBodyWindowPick: ((hit: BodyWindowHit, clientX: number, clientY: number) => void) | null = null
@@ -203,20 +203,20 @@ export class ReScene {
   private bodyLayer(): SceneLayer {
     return {
       order: LAYER_ORDER.elements + 10,
-      // Shift and a left drag over the bodies is a selection window — no
-      // navigation scheme turns the camera with it.
+      // Keep Shift-click free for a single pick in the custom profile. Its
+      // selection window moves to Alt+Shift-drag.
       pointerDown: (e) =>
-        e.button === 0 && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && e.pointerType !== 'touch' && this.bodyPicks.picking()
+        e.button === 0 && e.shiftKey && !e.ctrlKey && !e.metaKey && e.altKey === Boolean(this.host.shiftPick?.()) && e.pointerType !== 'touch' && this.bodyPicks.picking()
           ? this.beginBodyWindow(e)
           : false,
-      click: (x, y, additive) => {
+      click: (x, y, additive, remove) => {
         // What the arrow keys stepped to is what was asked for.
         const stepped = this.steppedAt({ x, y })
         this.stepped = null
         if (stepped && this.bodyPicks.picking()) {
-          if (stepped.kind === 'vertex') this.onBodyVertexPick?.(stepped.hit, x, y, additive)
-          else if (stepped.kind === 'edge') this.onBodyEdgePick?.(stepped.hit, x, y, additive)
-          else this.onBodyFacePick?.(stepped.hit, x, y, additive)
+          if (stepped.kind === 'vertex') this.onBodyVertexPick?.(stepped.hit, x, y, additive, remove)
+          else if (stepped.kind === 'edge') this.onBodyEdgePick?.(stepped.hit, x, y, additive, remove)
+          else this.onBodyFacePick?.(stepped.hit, x, y, additive, remove)
           return true
         }
         if (this.partPointPick) {
@@ -227,9 +227,9 @@ export class ReScene {
           }
         }
         const item = this.bodyItemAt(x, y)
-        if (item?.kind === 'vertex') this.onBodyVertexPick?.(item.hit, x, y, additive)
-        else if (item?.kind === 'edge') this.onBodyEdgePick?.(item.hit, x, y, additive)
-        else if (item) this.onBodyFacePick?.(item.hit, x, y, additive)
+        if (item?.kind === 'vertex') this.onBodyVertexPick?.(item.hit, x, y, additive, remove)
+        else if (item?.kind === 'edge') this.onBodyEdgePick?.(item.hit, x, y, additive, remove)
+        else if (item) this.onBodyFacePick?.(item.hit, x, y, additive, remove)
         return item !== null
       },
       clickedAway: (x, y) => this.onClickAway?.(x, y),

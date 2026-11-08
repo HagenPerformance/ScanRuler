@@ -25,6 +25,7 @@ import { useShell } from '../state/shellStore'
 import { plugins } from '../plugins/registry'
 import { undo, redo } from '../state/historyStore'
 import type { StandardView } from '../viewer/orthoViewport'
+import { schemeById } from '../viewer/navSchemes'
 
 /** The keys of the plugin whose workspace is on screen, if one is. */
 const pluginKeys = () => plugins().find((p) => p.workspace?.id === useShell.getState().workspace)?.keyboard ?? null
@@ -118,6 +119,19 @@ export function useGlobalShortcuts({
       // from standing the gesture down to discarding the draft, marking and
       // all, which is exactly the trap the two steps exist to avoid.
       if (e.repeat) return
+      if (e.key === ' ' && !e.ctrlKey && !e.altKey && !e.metaKey &&
+          schemeById(useStore.getState().navScheme).shiftPick && !target?.closest('button')) {
+        const what = confirmable()
+        if (!what) return
+        e.preventDefault()
+        if (what === 'draft') confirmDraft()
+        else if (what === 'dimension') useStore.getState().commitDimension()
+        else if (what === 'section') confirmSection()
+        else if (what === 'flat') flatConfirmable()?.()
+        else if (what === 'plugin') pluginKeys()?.confirmable?.()?.()
+        else confirmButton()?.click()
+        return
+      }
       if ((e.ctrlKey || e.metaKey) && !e.altKey && ['z', 'y'].includes(e.key.toLowerCase())) {
         e.preventDefault()
         void (e.key.toLowerCase() === 'y' || e.shiftKey ? redo() : undo())
@@ -255,6 +269,7 @@ export function useGlobalShortcuts({
     }
     let middleDown: { x: number; y: number } | null = null
     const onPointerDown = (e: PointerEvent) => {
+      if (schemeById(useStore.getState().navScheme).shiftPick) return
       if (e.button !== 1) return
       middleDown = { x: e.clientX, y: e.clientY }
       // Keep the browser's middle-click autoscroll out of the way while an
@@ -262,6 +277,7 @@ export function useGlobalShortcuts({
       if (confirmable()) e.preventDefault()
     }
     const onPointerUp = (e: PointerEvent) => {
+      if (schemeById(useStore.getState().navScheme).shiftPick) return
       const down = middleDown
       middleDown = null
       if (e.button !== 1 || !down) return

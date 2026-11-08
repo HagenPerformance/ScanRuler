@@ -261,7 +261,7 @@ export class NetworkLayer {
       order: 14,
       covers: true,
       pointerDown: (e) => this.pointerDown(e),
-      click: (x, y, additive) => this.click(x, y, additive),
+      click: (x, y, additive, remove) => this.click(x, y, this.host.shiftPick?.() ? Boolean(remove) : additive),
       hover: (at, covered) => this.hover(at, covered),
       tick: (w, h) => {
         if (this.fat.setResolution(w, h)) this.host.invalidate()
@@ -994,11 +994,12 @@ export class NetworkLayer {
     this.shiftDown = e.shiftKey
     const d = this.draft
     if (!d || d.tool !== 'draw' || d.placing || e.button !== 0) return false
+    if (this.host.shiftPick?.() && e.pointerType !== 'touch' && !e.shiftKey) return false
     const pressed = this.hitAt(e.clientX, e.clientY)
     if (!pressed) return false
     if (pressed.kind !== 'node' && pressed.kind !== 'grip' && pressed.kind !== 'centre' && pressed.kind !== 'curve') return false
     // Shift on an edge is the click's — a grip put in — or the camera's.
-    if (pressed.kind === 'curve' && e.shiftKey) return false
+    if (pressed.kind === 'curve' && e.shiftKey && !this.host.shiftPick?.()) return false
     // An edge of one patch, or of none, is dragged out into the next; one
     // two patches share is bent, a grip put in where it was pressed.
     const bend = pressed.kind === 'curve' && this.sharedCurves().has(pressed.curve)

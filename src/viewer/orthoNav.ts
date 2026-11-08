@@ -202,6 +202,11 @@ export class OrthoNavigator {
     return this.bindings.some((b) => b.buttons === mask && !!b.shift === e.shiftKey && !!b.ctrl === e.ctrlKey && !!b.alt === e.altKey)
   }
 
+  /** The custom picking chords apply to 3D views, not to the 2D sheet. */
+  shiftPick(): boolean {
+    return Boolean(this.scheme.shiftPick && !this.planar)
+  }
+
   /** Whether a drag is turning, panning or zooming the view right now — a
    *  button merely held, which may yet be a click, is not. What lights
    *  under the cursor waits while it is: the view moves under a cursor that
@@ -231,6 +236,12 @@ export class OrthoNavigator {
     // plain right-button binding still wins.
     const planarExtra: NavBinding[] = this.planar ? [{ buttons: RMB, action: 'pan' }] : []
     if (!this.paintMode) {
+      this.bindings = [...base, ...planarExtra]
+      return
+    }
+    // This profile reserves plain left-drag for orbit even while a marking
+    // tool or grip is active. Shift/Ctrl+left belong to the tool instead.
+    if (this.scheme.shiftPick && !this.planar) {
       this.bindings = [...base, ...planarExtra]
       return
     }

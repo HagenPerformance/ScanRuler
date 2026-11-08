@@ -24,6 +24,7 @@ import {
   useFlat,
 } from '../state/flatStore'
 import { useStore } from '../state/store'
+import { schemeById } from '../viewer/navSchemes'
 import { CopyButton } from './CopyButton'
 import { ElementRow } from './ElementRow'
 import { ShowAllButton } from './ShowAllButton'
@@ -55,6 +56,7 @@ export function FlatPanel({
   onExportDxf: () => void
 }) {
   const imageName = useFlat((s) => s.imageName)
+  const shiftPickControls = useStore((s) => schemeById(s.navScheme).shiftPick === true)
   const imageWidth = useFlat((s) => s.imageWidth)
   const imageHeight = useFlat((s) => s.imageHeight)
   const imageBusy = useFlat((s) => s.imageBusy)
@@ -432,7 +434,9 @@ export function FlatPanel({
                 click; drag it to move it, click it to change what it says.
               </p>
               <p>
-                <b>Enter</b> or a <b>middle click</b> creates whatever is pending; <b>Esc</b>{' '}
+                {shiftPickControls
+                  ? <><b>Space</b> or <b>Enter</b></>
+                  : <><b>Enter</b> or a <b>middle click</b></>} creates whatever is pending; <b>Esc</b>{' '}
                 discards it.
               </p>
             </InfoDot>

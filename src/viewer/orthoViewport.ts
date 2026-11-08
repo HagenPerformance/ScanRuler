@@ -335,6 +335,7 @@ export class OrthoViewport {
       if (!down || e.button !== 0 || wasMulti) return
       // A drag is a rotation, not a pick.
       if (Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 6) return
+      if (e.pointerType !== 'touch' && this.nav.shiftPick() && !e.shiftKey && !e.ctrlKey && !e.metaKey) return
       this.opts.onClick(e.clientX, e.clientY, e)
     })
     // A cancelled pointer never reports up; without this the canvas would stay

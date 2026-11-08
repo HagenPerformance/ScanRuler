@@ -54,6 +54,8 @@ export interface SceneLayerHost {
    *  something the layer drags, or give it back: the camera then turns on
    *  Shift and the other buttons, as it does for the brush. */
   claimDrag(on: boolean): void
+  /** Whether the active 3D profile requires Shift for picking and dragging. */
+  shiftPick?(): boolean
   theme(): ViewTheme
   /** Half the part's bounding-box diagonal — the scale overlays are drawn at. */
   modelRadius(): number
@@ -92,7 +94,7 @@ export interface SceneLayer {
   /** A press: true when the layer takes it, the camera standing aside. */
   pointerDown?(e: PointerEvent): boolean
   /** A click that survived the drag threshold: true when the layer took it. */
-  click?(clientX: number, clientY: number, additive: boolean): boolean
+  click?(clientX: number, clientY: number, additive: boolean, remove?: boolean): boolean
   /** A click nothing took — on the scan, or on empty space — without Ctrl. */
   clickedAway?(clientX: number, clientY: number): void
   /** The pointer, once per frame it may have moved over something new —

@@ -29,6 +29,8 @@ export interface ControlScheme {
   id: string
   label: string
   bindings: NavBinding[]
+  /** In the Hagen profile, mouse picks require Shift and removal uses Ctrl. */
+  shiftPick?: boolean
   /** Scroll up zooms OUT — the SolidWorks / Autodesk-desktop / NX default. */
   wheelZoomsOut?: boolean
   /** CATIA: while MMB is held, a quick CLICK of a second button (instead of
@@ -49,6 +51,16 @@ export const SCHEMES: ControlScheme[] = [
     bindings: [
       { buttons: LMB, action: 'orbit' },
       { buttons: RMB, action: 'pan' },
+    ],
+  },
+  {
+    id: 'hagen',
+    label: 'Hagen / EXStar',
+    shiftPick: true,
+    hint: 'left-drag orbit · middle-drag pan · Shift+left pick/mark · Ctrl+left remove · Space confirm',
+    bindings: [
+      { buttons: LMB, action: 'orbit' },
+      { buttons: MMB, action: 'pan' },
     ],
   },
   {

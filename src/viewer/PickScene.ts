@@ -154,6 +154,7 @@ export class PickScene {
       invalidate: this.viewport.invalidate,
       claimDrag: (on) => this.viewport.nav.setPaintMode(on),
       navigates: (e) => this.viewport.nav.navigates(e),
+      shiftPick: () => this.viewport.nav.shiftPick(),
       requestHover: () => {
         this.hoverDirty = true
       },

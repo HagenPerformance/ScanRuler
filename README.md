@@ -175,6 +175,8 @@ files, projects and agent answers stay in millimetres.
   Edge, and touch screens work too. SpaceMouse navigation only affects a
   visible, focused ScanRuler page; switching to another window stops background
   motion. Save your work and reload existing tabs after updating.
+  This fork adds a [Hagen / EXStar control profile](docs/hagen-controls.md)
+  for 3D Measure, Reverse engineer and Mesh Tools.
 - **View bar** (bottom left): show or hide the scan, reference and elements,
   make them transparent, show the mesh or the back faces. **Section** cuts
   everything open at a plane to look inside.

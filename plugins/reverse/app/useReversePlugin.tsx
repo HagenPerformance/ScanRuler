@@ -9,6 +9,7 @@ import { reSceneOf } from '../viewer/reScene'
 import { useEffect, useRef } from 'react'
 import type { PluginHost, PluginRuntime } from '../../../src/plugins/api'
 import { useStore } from '../../../src/state/store'
+import { schemeById } from '../../../src/viewer/navSchemes'
 import { dimensionKind } from '../core/parameters'
 import { isDimension } from '../core/sketch'
 import { gripSlotPath } from '../state/reStore'
@@ -32,7 +33,8 @@ import { isFeatureSide } from '../core/preview'
 import { VIEW_MESH_MAP_SPACING } from '../core/compare'
 import { useReverseWorkspace } from './useReverseWorkspace'
 import { useSketchSceneSync } from './useSketchSceneSync'
-import { bodyColor, chainArcStart, reEditorOpen, snapFaceOf, useReverse } from '../state/reStore'
+import { bodyColor, chainArcStart, reEditorOpen, selectionItems, snapFaceOf, useReverse } from '../state/reStore'
+import { itemKey, type PickedItem } from '../core/selectionInfo'
 import { useRePrefs } from '../state/rePrefs'
 import type { TangentEdges } from '../core/edgeLines'
 import { installCompareInDeviation, reverseSession } from './reSession'
@@ -300,6 +302,15 @@ export function useReversePlugin(host: PluginHost): PluginRuntime {
   useEffect(() => {
     const scene = sceneRef.current
     if (!scene) return
+    const pickBody = (item: PickedItem, x: number, y: number, additive: boolean, remove = false) => {
+      const re = useReverse.getState()
+      const at = { x, y }
+      if (remove) {
+        if (selectionItems(re.selection).some((held) => itemKey(held) === itemKey(item))) re.pickBodyItem(item, at, true)
+      } else if (additive && schemeById(useStore.getState().navScheme).shiftPick) {
+        re.addBodyItems([item], at)
+      } else re.pickBodyItem(item, at, additive)
+    }
     reSceneOf(scene).onSketchRegionPick = (hit, x, y) => {
       const re = useReverse.getState()
       if (reEditorOpen(re)) re.toggleDraftRegion(hit.sketchId, hit.key)
@@ -310,30 +321,45 @@ export function useReversePlugin(host: PluginHost): PluginRuntime {
       if (re.revolveDraft) re.setRevolve({ sketchId: hit.sketchId, axis: { kind: 'sketchLine', entity: hit.entity } })
       else if (!reEditorOpen(re)) re.setSelection({ kind: 'sketchLine', sketchId: hit.sketchId, entity: hit.entity, at: { x, y } })
     }
-    reSceneOf(scene).onBodyFacePick = (hit, x, y, additive) => {
+    reSceneOf(scene).onBodyFacePick = (hit, x, y, additive, remove) => {
       const re = useReverse.getState()
       if (useNotes.getState().placing) pinNoteOnBody(scene, { type: 'face', ...hit }, x, y)
       else if (re.featureDraft) {
         // A Delete face takes the whole round, hole or boss clicked.
         const d = re.featureDraft
+        if (schemeById(useStore.getState().navScheme).shiftPick) {
+          const selected = d.kind === 'moveBody'
+            ? d.bodies.includes(hit.bodyId)
+            : 'faces' in d && 'body' in d && d.body === hit.bodyId && d.faces.some((face) => face.hash === hit.face.hash)
+          if (remove ? !selected : selected) return
+          if (remove && !('faces' in d || d.kind === 'moveBody')) return
+        }
         re.toggleDraftFace(hit.bodyId, hit.face, d.kind === 'deleteFace' ? reverseSession()?.deleteFacesAt(hit.bodyId, hit.face.hash, d.tangent) : undefined)
       }
       else if (re.extrudeDraft?.extent.kind === 'toFace') {
         // The face an extrude reaches to: a flat one as its plane, a curved
         // one as it is.
         re.setExtrude({ extent: { ...re.extrudeDraft.extent, body: hit.bodyId, face: hit.face.fingerprint } })
-      } else if (!reEditorOpen(re)) re.pickBodyItem({ type: 'face', bodyId: hit.bodyId, face: hit.face, edges: hit.edges }, { x, y }, additive)
+      } else if (!reEditorOpen(re)) pickBody({ type: 'face', bodyId: hit.bodyId, face: hit.face, edges: hit.edges }, x, y, additive, remove)
     }
-    reSceneOf(scene).onBodyEdgePick = (hit, x, y, additive) => {
+    reSceneOf(scene).onBodyEdgePick = (hit, x, y, additive, remove) => {
       const re = useReverse.getState()
       if (useNotes.getState().placing) pinNoteOnBody(scene, { type: 'edge', ...hit }, x, y)
-      else if (re.featureDraft) re.toggleDraftEdge(hit.bodyId, hit.edge)
-      else if (!reEditorOpen(re)) re.pickBodyItem({ type: 'edge', bodyId: hit.bodyId, edge: hit.edge }, { x, y }, additive)
+      else if (re.featureDraft) {
+        if (schemeById(useStore.getState().navScheme).shiftPick) {
+          const d = re.featureDraft
+          const selected = (d.kind === 'fillet' || d.kind === 'chamfer') && d.body === hit.bodyId &&
+            (d.edges.some((edge) => edge.hash === hit.edge.hash) || (d.kind === 'fillet' && d.variable?.some((v) => v.edge.hash === hit.edge.hash)))
+          if (remove ? !selected : selected) return
+        }
+        re.toggleDraftEdge(hit.bodyId, hit.edge)
+      }
+      else if (!reEditorOpen(re)) pickBody({ type: 'edge', bodyId: hit.bodyId, edge: hit.edge }, x, y, additive, remove)
     }
-    reSceneOf(scene).onBodyVertexPick = (hit, x, y, additive) => {
+    reSceneOf(scene).onBodyVertexPick = (hit, x, y, additive, remove) => {
       const re = useReverse.getState()
       if (useNotes.getState().placing) pinNoteOnBody(scene, { type: 'vertex', ...hit }, x, y)
-      else if (!reEditorOpen(re)) re.pickBodyItem({ type: 'vertex', bodyId: hit.bodyId, point: hit.point }, { x, y }, additive)
+      else if (!reEditorOpen(re)) pickBody({ type: 'vertex', bodyId: hit.bodyId, point: hit.point }, x, y, additive, remove)
     }
     reSceneOf(scene).onPartPointPick = (point) => {
       // A click on the part while an extrude is set up: the end in play goes

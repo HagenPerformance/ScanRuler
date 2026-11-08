@@ -31,6 +31,7 @@
     "e2e:align-live": "node scripts/e2e-align-live.mjs",
     "e2e:align-after-deviation": "node scripts/e2e-align-after-deviation.mjs",
     "e2e:nav": "node scripts/e2e-nav.mjs",
+    "e2e:hagen": "node scripts/e2e-hagen-controls.mjs",
     "e2e:spacemouse": "node scripts/e2e-spacemouse.mjs",
     "e2e:touch": "node scripts/e2e-touch.mjs",
     "e2e:edit": "node scripts/e2e-edit.mjs",

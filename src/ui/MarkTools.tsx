@@ -235,6 +235,7 @@ export function markChipText(
   escape: { idle: string; live: string },
   /** The brush's straight-line switch. */
   straight = false,
+  shiftPick = false,
 ): string {
   const tally = count === 0 ? '' : ` · ${count.toLocaleString('en-US')} points marked`
   if (gesture === null) {
@@ -246,7 +247,9 @@ export function markChipText(
       : gesture === 'lasso'
         ? `Draw a lasso around ${target}`
         : straight
-          ? `Drag a straight line over ${target} · ${modLabel}-drag draws freehand`
-          : `Drag the brush over ${target} · ${modLabel}-drag draws a straight line`
-  return `${verb}${tally} · right-drag rubs out · Shift-drag orbits · ${escape.live}`
+          ? shiftPick ? `Shift-drag a straight line over ${target}` : `Drag a straight line over ${target} · ${modLabel}-drag draws freehand`
+          : shiftPick ? `Shift-drag the brush over ${target}` : `Drag the brush over ${target} · ${modLabel}-drag draws a straight line`
+  return shiftPick
+    ? `${verb.replace('Drag ', 'Shift-drag ').replace('Draw ', 'Shift-draw ')}${tally} · Ctrl-drag rubs out · left-drag orbits · ${escape.live}`
+    : `${verb}${tally} · right-drag rubs out · Shift-drag orbits · ${escape.live}`
 }

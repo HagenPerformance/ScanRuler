@@ -110,6 +110,7 @@ export function paintHintOf(s: {
   markStraight: boolean
   markCount: number
   editingDraft: boolean
+  shiftPick?: boolean
 }): string | null {
   const { draft, painting, markGesture, markStraight, markCount, editingDraft } = s
   return !painting
@@ -117,7 +118,7 @@ export function paintHintOf(s: {
     : markChipText(markGesture, markCount, `the ${elementKindInfo(draft!.kind).noun}`, {
         idle: editingDraft ? 'Esc discards the changes' : 'Esc discards the element',
         live: 'Esc to navigate, twice to discard',
-      }, markStraight) +
+      }, markStraight, s.shiftPick) +
       (draft!.status === 'ready'
         ? editingDraft
           ? ' · Enter or middle-click saves it'
@@ -157,7 +158,7 @@ export function stageHintOf(s: {
 /** The same tools mark two different things in the deviation workspace: the
  *  surface a local fine fit runs on, and the region an element map is
  *  restricted to. */
-export function markHintOf(s: { marking: boolean; markGesture: MarkGesture | null; markStraight: boolean; markCount: number; source: string }): string | null {
+export function markHintOf(s: { marking: boolean; markGesture: MarkGesture | null; markStraight: boolean; markCount: number; source: string; shiftPick?: boolean }): string | null {
   const { marking, markGesture, markStraight, markCount, source } = s
   return !marking
     ? null
@@ -170,5 +171,6 @@ export function markHintOf(s: { marking: boolean; markGesture: MarkGesture | nul
           live: 'Esc to navigate, twice to close',
         },
         markStraight,
+        s.shiftPick,
       )
 }
